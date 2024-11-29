@@ -1,0 +1,55 @@
+# EN: Create the DENY policy to change the import/export filter.
+# PT: Criar a policy de DENY que será utilizada para filtrar o import/export de rotas.
+set policy-options policy-statement DENY term Reject then reject
+
+# EN: Enable events on syslog.
+# PT: Habilita o envio de logs de eventos.
+set system syslog file syslog-event-daemon-info daemon info
+
+# EN: Create the RPM PROBE for IPv4 connectivity
+# PT: Cria o RPM PROBE para testar conectividade IPv4 
+set services rpm probe CHECK-UPSTREAM test IPv4-PEER probe-type icmp-ping
+set services rpm probe CHECK-UPSTREAM test IPv4-PEER target address <destination-ipv4-address>
+set services rpm probe CHECK-UPSTREAM test IPv4-PEER test-interval 5
+set services rpm probe CHECK-UPSTREAM test IPv4-PEER source-address <source-ipv4-address>
+set services rpm probe CHECK-UPSTREAM test IPv4-PEER thresholds successive-loss 3
+
+# EN: Create the event-options policy to change the upstream IPv4 peer import/export policies after 3x consecutive icmp failures.
+# PT: Criar uma policy de eventos para alterar os filtros de import e export do peer IPv4 após detectar 3x falhas consecutivas de ping.
+set event-options policy DISABLE-UPSTREAM-v4 events ping_test_failed
+set event-options policy DISABLE-UPSTREAM-v4 within 60 trigger on
+set event-options policy DISABLE-UPSTREAM-v4 within 60 trigger 3
+set event-options policy DISABLE-UPSTREAM-v4 within 65 trigger until
+set event-options policy DISABLE-UPSTREAM-v4 within 65 trigger 4
+set event-options policy DISABLE-UPSTREAM-v4 attributes-match ping_test_failed.test-owner matches CHECK-UPSTREAM
+set event-options policy DISABLE-UPSTREAM-v4 attributes-match ping_test_failed.test-name matches IPv4-PEER
+set event-options policy DISABLE-UPSTREAM-v4 then change-configuration commands "delete protocols bgp group <upstream-name> neighbor <ipv4-peer-address> import"
+set event-options policy DISABLE-UPSTREAM-v4 then change-configuration commands "delete protocols bgp group <upstream-name> neighbor <ipv4-peer-address> export"
+set event-options policy DISABLE-UPSTREAM-v4 then change-configuration commands "set protocols bgp group <upstream-name> neighbor <ipv4-peer-address> import DENY"
+set event-options policy DISABLE-UPSTREAM-v4 then change-configuration commands "set protocols bgp group <upstream-name> neighbor <ipv4-peer-address> export DENY"
+set event-options policy DISABLE-UPSTREAM-v4 then change-configuration user-name <junos-user>
+set event-options policy DISABLE-UPSTREAM-v4 then change-configuration commit-options log "updating configuration from event policy DISABLE-UPSTREAM-v4"
+
+# EN: Create the RPM PROBE for IPv6 connectivity
+# PT: Cria o RPM PROBE para testar conectividade IPv6 
+set services rpm probe CHECK-UPSTREAM test IPv6-PEER probe-type icmp6-ping
+set services rpm probe CHECK-UPSTREAM test IPv6-PEER target inet6-address <destination-ipv6-address>
+set services rpm probe CHECK-UPSTREAM test IPv6-PEER inet6-options source-address <source-ipv6-address>
+set services rpm probe CHECK-UPSTREAM test IPv6-PEER test-interval 5
+set services rpm probe CHECK-UPSTREAM test IPv6-PEER thresholds successive-loss 3
+
+# EN: Create the event-options policy to change the upstream IPv6 peer import/export policies after 3x consecutive icmp failures.
+# PT: Criar uma policy de eventos para alterar os filtros de import e export do peer IPv6 após detectar 3x falhas consecutivas de ping.
+set event-options policy DISABLE-UPSTREAM-v6 events ping_test_failed
+set event-options policy DISABLE-UPSTREAM-v6 within 60 trigger on
+set event-options policy DISABLE-UPSTREAM-v6 within 60 trigger 3
+set event-options policy DISABLE-UPSTREAM-v6 within 65 trigger until
+set event-options policy DISABLE-UPSTREAM-v6 within 65 trigger 4
+set event-options policy DISABLE-UPSTREAM-v6 attributes-match ping_test_failed.test-owner matches CHECK-UPSTREAM
+set event-options policy DISABLE-UPSTREAM-v6 attributes-match ping_test_failed.test-name matches IPv6-PEER
+set event-options policy DISABLE-UPSTREAM-v6 then change-configuration commands "delete protocols bgp group <upstream-name> neighbor <ipv6-peer-address> import"
+set event-options policy DISABLE-UPSTREAM-v6 then change-configuration commands "delete protocols bgp group <upstream-name> neighbor <ipv6-peer-address> export"
+set event-options policy DISABLE-UPSTREAM-v6 then change-configuration commands "set protocols bgp group <upstream-name> neighbor <ipv6-peer-address> import DENY"
+set event-options policy DISABLE-UPSTREAM-v6 then change-configuration commands "set protocols bgp group <upstream-name> neighbor <ipv6-peer-address> export DENY"
+set event-options policy DISABLE-UPSTREAM-v6 then change-configuration user-name <junos-user>
+set event-options policy DISABLE-UPSTREAM-v6 then change-configuration commit-options log "updating configuration from event policy DISABLE-UPSTREAM-v6"
